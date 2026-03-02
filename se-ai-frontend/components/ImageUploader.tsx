@@ -27,7 +27,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // จัดการ Drag Enter, Drag Over
   const handleDrag = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
@@ -38,7 +37,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
     }
   }
 
-  // จัดการเมื่อ Drop ไฟล์
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault()
     e.stopPropagation()
@@ -49,23 +47,19 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
     }
   }
 
-  // จัดการเมื่อเลือกไฟล์ผ่าน Input
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0])
     }
   }
 
-  // ตรวจสอบและแสดง Preview รูปภาพ
   const handleFile = (file: File) => {
-    // ตรวจสอบประเภทไฟล์
     const validTypes = ['image/png', 'image/jpeg', 'image/jpg']
     if (!validTypes.includes(file.type)) {
       onError('กรุณาอัปโหลดไฟล์ภาพประเภท PNG, JPG หรือ JPEG เท่านั้น')
       return
     }
 
-    // ตรวจสอบขนาดไฟล์ (สูงสุด 10MB)
     if (file.size > 10 * 1024 * 1024) {
       onError('ไฟล์ภาพมีขนาดใหญ่เกินไป (สูงสุด 10MB)')
       return
@@ -73,7 +67,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
 
     setSelectedFile(file)
     
-    // สร้าง Preview
     const reader = new FileReader()
     reader.onloadend = () => {
       setPreview(reader.result as string)
@@ -101,6 +94,8 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
         {
           headers: {
             'Content-Type': 'multipart/form-data',
+            // --- เพิ่ม Header ตรงนี้เพื่อ Bypass หน้า Warning ของ ngrok ---
+            'ngrok-skip-browser-warning': 'true',
           },
           timeout: 30000, // 30 วินาที
         }
@@ -108,13 +103,12 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
 
       onPrediction(response.data)
     } catch (error: any) {
-      // จัดการ Error ตามประเภท
       if (error.code === 'ERR_NETWORK') {
-        onError('ไม่สามารถเชื่อมต่อกับ Backend API ได้ กรุณาตรวจสอบว่า Flask server ทำงานอยู่')
+        onError('ไม่สามารถเชื่อมต่อกับ Backend API ได้ กรุณาตรวจสอบว่า Docker/ngrok ทำงานอยู่')
       } else if (error.response) {
         onError(`เกิดข้อผิดพลาดจาก Server: ${error.response.status}`)
       } else if (error.request) {
-        onError('ส่งคำขอไปยัง Server แต่ไม่ได้รับการตอบกลับ (อาจเป็น CORS Error)')
+        onError('ส่งคำขอไปยัง Server แต่ไม่ได้รับการตอบกลับ (อาจติดหน้า Warning ของ ngrok หรือ CORS)')
       } else {
         onError(`เกิดข้อผิดพลาด: ${error.message}`)
       }
@@ -124,7 +118,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
     }
   }
 
-  // ล้างไฟล์ที่เลือก
   const handleReset = () => {
     setPreview(null)
     setSelectedFile(null)
@@ -135,7 +128,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
 
   return (
     <div className="space-y-4">
-      {/* Upload Zone */}
       <div
         className={`upload-zone ${dragActive ? 'upload-zone-active' : ''}`}
         onDragEnter={handleDrag}
@@ -185,7 +177,6 @@ export default function ImageUploader({ onPrediction, onError, onLoadingChange }
         )}
       </div>
 
-      {/* Action Buttons */}
       <div className="flex gap-3">
         <button
           onClick={handleUpload}
